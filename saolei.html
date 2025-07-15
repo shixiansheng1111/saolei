@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>经典扫雷 - 纯静态版</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💣</text></svg>">
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --container-bg: #ffffff;
+            --panel-bg: #e0e5ec;
+            --cell-bg: #c1c9d2;
+            --cell-revealed-bg: #e0e5ec;
+            --primary-text: #333;
+            --secondary-text: #666;
+            --border-light: #ffffff;
+            --border-dark: #a0a8b1;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --blue: #1a73e8;
+            --green: #2e8b57;
+            --red: #d93025;
+            --dark-blue: #00008b;
+            --maroon: #800000;
+            --cyan: #008080;
+            --black: #000000;
+            --gray: #808080;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 90vw;
+            width: fit-content;
+            background-color: var(--container-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 1.5rem 2rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--primary-text);
+            margin-bottom: 1.5rem;
+        }
+
+        .minesweeper-game {
+            background-color: var(--panel-bg);
+            border: 1px solid #ccc;
+            padding: 1rem;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #d1d9e6;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            border: 2px solid;
+            border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+        }
+
+        .stat {
+            background-color: #333;
+            color: var(--red);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            min-width: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .stat .icon {
+            font-family: 'Segoe UI Emoji', sans-serif;
+            font-size: 1rem;
+            margin-right: 0.5rem;
+            color: #fff;
+        }
+
+        .reset-button {
+            font-size: 2rem;
+            width: 50px;
+            height: 50px;
+            border: 2px solid;
+            border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+            background-color: var(--cell-bg);
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .reset-button:active {
+            border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+            background-color: var(--cell-revealed-bg);
+        }
+
+        .game-controls {
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .difficulty-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #bbb;
+            background-color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        .difficulty-btn:hover {
+            background-color: #f0f0f0;
+            border-color: #999;
+        }
+        .difficulty-btn.active {
+            background-color: var(--blue);
+            color: white;
+            border-color: var(--blue);
+            font-weight: bold;
+        }
+
+        #game-board-wrapper {
+            border: 3px solid;
+            border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+            line-height: 0;
+        }
+
+        #game-board {
+            display: grid;
+            user-select: none; /* 防止双击选中文本 */
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: var(--cell-bg);
+            border: 2px solid;
+            border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        .cell.revealed {
+            background-color: var(--cell-revealed-bg);
+            border: 1px solid #b0b8c1;
+            cursor: default;
+        }
+
+        .cell.mine {
+            font-size: 1.5rem;
+        }
+        .cell.mine-hit {
+            background-color: var(--red);
+        }
+
+        .cell.flagged {
+            font-size: 1.5rem;
+        }
+        .cell.wrong-flag::after {
+            content: '❌';
+            position: absolute;
+            font-size: 1.5rem;
+            color: rgba(255, 0, 0, 0.7);
+        }
+
+        .c1 { color: var(--blue); }
+        .c2 { color: var(--green); }
+        .c3 { color: var(--red); }
+        .c4 { color: var(--dark-blue); }
+        .c5 { color: var(--maroon); }
+        .c6 { color: var(--cyan); }
+        .c7 { color: var(--black); }
+        .c8 { color: var(--gray); }
+
+        .history-panel {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .history-panel h2 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            color: var(--secondary-text);
+        }
+        #history-records p {
+            margin: 0.5rem 0;
+            font-size: 1rem;
+        }
+        #clear-history-btn {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background-color: #efefef;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--secondary-text);
+            transition: all 0.2s ease;
+        }
+        #clear-history-btn:hover {
+            background-color: #e0e0e0;
+            border-color: #ccc;
+        }
+        #solver-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ffc107;
+            background-color: #fff9e6;
+            color: #b38600;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            margin-left: 1rem;
+        }
+        #solver-btn:hover {
+            background-color: #ffecb3;
+            border-color: #ffb300;
+        }
+        #solver-btn:disabled {
+            background-color: #f5f5f5;
+            color: #ccc;
+            border-color: #ddd;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>经典扫雷</h1>
+        <div class="minesweeper-game">
+            <header class="game-header">
+                <div class="stat" id="mine-counter">
+                    <span class="icon">💣</span>
+                    <span class="value">010</span>
+                </div>
+                <button id="reset-button" class="reset-button">🙂</button>
+                <div class="stat" id="timer">
+                    <span class="icon">⏱️</span>
+                    <span class="value">000</span>
+                </div>
+            </header>
+
+            <div class="game-controls">
+                <button class="difficulty-btn active" data-difficulty="easy">初级</button>
+                <button class="difficulty-btn" data-difficulty="medium">中级</button>
+                <button class="difficulty-btn" data-difficulty="hard">高级</button>
+                <!-- 【优化】更新按钮文本和title -->
+                <button id="solver-btn" title="自动标记和打开确定的格子 (快捷键: A)">💡 自动处理 (A)</button>
+            </div>
+
+            <div id="game-board-wrapper">
+                <div id="game-board"></div>
+            </div>
+        </div>
+
+        <div class="history-panel">
+            <h2>🏆 个人最佳记录</h2>
+            <div id="history-records">
+                <p><strong>初级:</strong> <span id="best-time-easy">--</span> 秒</p>
+                <p><strong>中级:</strong> <span id="best-time-medium">--</span> 秒</p>
+                <p><strong>高级:</strong> <span id="best-time-hard">--</span> 秒</p>
+            </div>
+            <button id="clear-history-btn">清除记录</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 游戏设置
+            const DIFFICULTIES = {
+                easy: { rows: 9, cols: 9, mines: 10 },
+                medium: { rows: 16, cols: 16, mines: 40 },
+                hard: { rows: 16, cols: 30, mines: 99 }
+            };
+
+            // DOM 元素
+            const gameBoard = document.getElementById('game-board');
+            const mineCounter = document.querySelector('#mine-counter .value');
+            const timerDisplay = document.querySelector('#timer .value');
+            const resetButton = document.getElementById('reset-button');
+            const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+            const clearHistoryBtn = document.getElementById('clear-history-btn');
+            const solverBtn = document.getElementById('solver-btn');
+
+            // 游戏状态变量
+            let currentDifficulty = 'easy';
+            let rows, cols, mines;
+            let board = [];
+            let mineLocations = [];
+            let flagsPlaced = 0;
+            let revealedCells = 0;
+            let gameOver = false;
+            let firstClick = true;
+            let timerInterval;
+            let time = 0;
+
+            function initGame(difficulty) {
+                currentDifficulty = difficulty;
+                const config = DIFFICULTIES[difficulty];
+                rows = config.rows;
+                cols = config.cols;
+                mines = config.mines;
+                gameOver = false;
+                firstClick = true;
+                flagsPlaced = 0;
+                revealedCells = 0;
+                time = 0;
+                clearInterval(timerInterval);
+                timerDisplay.textContent = '000';
+                mineCounter.textContent = mines.toString().padStart(3, '0');
+                resetButton.textContent = '🙂';
+                solverBtn.disabled = false;
+                createBoard();
+                updateDifficultyButtons();
+                loadHistory();
+            }
+
+            function createBoard() {
+                board = [];
+                gameBoard.innerHTML = '';
+                gameBoard.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
+                for (let r = 0; r < rows; r++) {
+                    const row = [];
+                    for (let c = 0; c < cols; c++) {
+                        row.push({ isMine: false, isRevealed: false, isFlagged: false, neighborMines: 0 });
+                        const cell = document.createElement('div');
+                        cell.classList.add('cell');
+                        cell.dataset.row = r;
+                        cell.dataset.col = c;
+                        cell.addEventListener('mousedown', handleCellMouseDown);
+                        cell.addEventListener('contextmenu', e => e.preventDefault());
+                        gameBoard.appendChild(cell);
+                    }
+                    board.push(row);
+                }
+            }
+
+            function handleCellMouseDown(event) {
+                if (gameOver) return;
+                const cellElement = event.target;
+                const r = parseInt(cellElement.dataset.row);
+                const c = parseInt(cellElement.dataset.col);
+                if (event.button === 1 || event.detail === 2) {
+                    event.preventDefault();
+                    handleChord(r, c);
+                } else if (event.button === 2) {
+                    handleRightClick(r, c);
+                } else if (event.button === 0 && !board[r][c].isFlagged) {
+                    handleLeftClick(r, c);
+                }
+            }
+
+            function handleChord(r, c) {
+                const cell = board[r][c];
+                if (!cell.isRevealed || cell.neighborMines === 0) return;
+                const neighbors = getNeighbors(r, c);
+                const flaggedNeighbors = neighbors.filter(([nr, nc]) => board[nr][nc].isFlagged).length;
+                if (flaggedNeighbors === cell.neighborMines) {
+                    neighbors.forEach(([nr, nc]) => {
+                        if (!board[nr][nc].isRevealed && !board[nr][nc].isFlagged) {
+                            handleLeftClick(nr, nc);
+                        }
+                    });
+                }
+            }
+
+            function handleLeftClick(r, c) {
+                const cell = board[r][c];
+                if (cell.isRevealed || cell.isFlagged) return;
+                if (firstClick) {
+                    placeMines(r, c);
+                    startTimer();
+                    firstClick = false;
+                }
+                if (cell.isMine) {
+                    endGame(false, r, c);
+                    return;
+                }
+                revealCell(r, c);
+                checkWinCondition();
+            }
+
+            function handleRightClick(r, c) {
+                const cell = board[r][c];
+                if (cell.isRevealed) return;
+                cell.isFlagged = !cell.isFlagged;
+                flagsPlaced += cell.isFlagged ? 1 : -1;
+                const cellElement = getCellElement(r, c);
+                cellElement.classList.toggle('flagged', cell.isFlagged);
+                cellElement.textContent = cell.isFlagged ? '🚩' : '';
+                updateMineCounter();
+            }
+
+            function placeMines(initialR, initialC) {
+                mineLocations = [];
+                let minesToPlace = mines;
+                while (minesToPlace > 0) {
+                    const r = Math.floor(Math.random() * rows);
+                    const c = Math.floor(Math.random() * cols);
+                    const isInitialClickArea = Math.abs(r - initialR) <= 1 && Math.abs(c - initialC) <= 1;
+                    if (!board[r][c].isMine && !isInitialClickArea) {
+                        board[r][c].isMine = true;
+                        mineLocations.push([r, c]);
+                        minesToPlace--;
+                    }
+                }
+                calculateNeighborMines();
+            }
+
+            function calculateNeighborMines() {
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        if (!board[r][c].isMine) {
+                            board[r][c].neighborMines = getNeighbors(r, c).filter(([nr, nc]) => board[nr][nc].isMine).length;
+                        }
+                    }
+                }
+            }
+
+            function revealCell(r, c) {
+                if (r < 0 || r >= rows || c < 0 || c >= cols || gameOver) return;
+                const cell = board[r][c];
+                if (cell.isRevealed || cell.isFlagged) return;
+                cell.isRevealed = true;
+                revealedCells++;
+                const cellElement = getCellElement(r, c);
+                cellElement.classList.add('revealed');
+                cellElement.textContent = '';
+                if (cell.neighborMines > 0) {
+                    cellElement.textContent = cell.neighborMines;
+                    cellElement.classList.add(`c${cell.neighborMines}`);
+                } else {
+                    getNeighbors(r, c).forEach(([nr, nc]) => revealCell(nr, nc));
+                }
+            }
+
+            function getNeighbors(r, c) {
+                const neighbors = [];
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        if (dr === 0 && dc === 0) continue;
+                        const nr = r + dr;
+                        const nc = c + dc;
+                        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                            neighbors.push([nr, nc]);
+                        }
+                    }
+                }
+                return neighbors;
+            }
+
+            function endGame(isWin, clickedR, clickedC) {
+                if (gameOver) return;
+                gameOver = true;
+                solverBtn.disabled = true;
+                clearInterval(timerInterval);
+                resetButton.textContent = isWin ? '😎' : '😵';
+                if (isWin) {
+                    updateHistory(currentDifficulty, time);
+                    loadHistory();
+                    mineLocations.forEach(([r, c]) => {
+                        if (!board[r][c].isFlagged) {
+                            getCellElement(r, c).textContent = '🚩';
+                            getCellElement(r, c).classList.add('flagged');
+                        }
+                    });
+                } else {
+                    mineLocations.forEach(([r, c]) => {
+                        const cellElement = getCellElement(r, c);
+                        if (!board[r][c].isFlagged) {
+                            cellElement.classList.add('revealed', 'mine');
+                            cellElement.textContent = '💣';
+                        }
+                        if (r === clickedR && c === clickedC) {
+                            cellElement.classList.add('mine-hit');
+                        }
+                    });
+                    for (let r = 0; r < rows; r++) {
+                        for (let c = 0; c < cols; c++) {
+                            if (board[r][c].isFlagged && !board[r][c].isMine) {
+                                getCellElement(r, c).classList.add('wrong-flag');
+                            }
+                        }
+                    }
+                }
+            }
+
+            function checkWinCondition() {
+                if (revealedCells === (rows * cols - mines)) {
+                    endGame(true);
+                }
+            }
+
+            function runSolver() {
+                if (gameOver) return;
+                let moveMadeInLoop;
+                do {
+                    moveMadeInLoop = false;
+                    if (gameOver) break;
+                    for (let r = 0; r < rows; r++) {
+                        for (let c = 0; c < cols; c++) {
+                            const cell = board[r][c];
+                            if (!cell.isRevealed || cell.neighborMines === 0) continue;
+                            const neighbors = getNeighbors(r, c);
+                            const unrevealedNeighbors = neighbors.filter(([nr, nc]) => !board[nr][nc].isRevealed);
+                            const flaggedNeighbors = unrevealedNeighbors.filter(([nr, nc]) => board[nr][nc].isFlagged);
+                            if (cell.neighborMines === unrevealedNeighbors.length && unrevealedNeighbors.length > flaggedNeighbors.length) {
+                                unrevealedNeighbors.forEach(([nr, nc]) => {
+                                    if (!board[nr][nc].isFlagged) {
+                                        handleRightClick(nr, nc);
+                                        moveMadeInLoop = true;
+                                    }
+                                });
+                            }
+                            const currentFlaggedCount = neighbors.filter(([nr, nc]) => board[nr][nc].isFlagged).length;
+                            if (cell.neighborMines === currentFlaggedCount && unrevealedNeighbors.length > currentFlaggedCount) {
+                                neighbors.forEach(([nr, nc]) => {
+                                    if (gameOver) return;
+                                    if (!board[nr][nc].isRevealed && !board[nr][nc].isFlagged) {
+                                        handleLeftClick(nr, nc);
+                                        moveMadeInLoop = true;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                } while (moveMadeInLoop && !gameOver);
+            }
+
+            function startTimer() {
+                time = 0;
+                timerInterval = setInterval(() => {
+                    time++;
+                    timerDisplay.textContent = time.toString().padStart(3, '0').slice(-3);
+                }, 1000);
+            }
+
+            function updateMineCounter() {
+                const remaining = mines - flagsPlaced;
+                mineCounter.textContent = remaining.toString().padStart(3, '0');
+            }
+
+            function updateDifficultyButtons() {
+                difficultyBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.difficulty === currentDifficulty));
+            }
+
+            function loadHistory() {
+                const history = JSON.parse(localStorage.getItem('minesweeperHistory')) || {};
+                document.getElementById('best-time-easy').textContent = history.easy ? `${history.easy}` : '--';
+                document.getElementById('best-time-medium').textContent = history.medium ? `${history.medium}` : '--';
+                document.getElementById('best-time-hard').textContent = history.hard ? `${history.hard}` : '--';
+            }
+
+            function updateHistory(difficulty, newTime) {
+                const history = JSON.parse(localStorage.getItem('minesweeperHistory')) || {};
+                if (!history[difficulty] || newTime < history[difficulty]) {
+                    history[difficulty] = newTime;
+                    localStorage.setItem('minesweeperHistory', JSON.stringify(history));
+                }
+            }
+
+            function clearHistory() {
+                if (confirm('确定要清除所有个人记录吗？')) {
+                    localStorage.removeItem('minesweeperHistory');
+                    loadHistory();
+                }
+            }
+
+            function getCellElement(r, c) {
+                return gameBoard.querySelector(`[data-row='${r}'][data-col='${c}']`);
+            }
+
+            // 事件绑定
+            resetButton.addEventListener('click', () => initGame(currentDifficulty));
+            difficultyBtns.forEach(btn => btn.addEventListener('click', () => initGame(btn.dataset.difficulty)));
+            clearHistoryBtn.addEventListener('click', clearHistory);
+            solverBtn.addEventListener('click', runSolver);
+            
+            // 【优化】新增：全局键盘快捷键监听
+            document.addEventListener('keydown', (event) => {
+                if (event.key.toLowerCase() === 'a') {
+                    // 调用自动处理函数
+                    runSolver();
+                }
+            });
+
+            // 初始启动
+            initGame('easy');
+        });
+    </script>
+</body>
+</html>

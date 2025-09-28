@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>经典扫雷 - 纯静态版</title>
+    <title>AI扫雷 - 一键完成版</title>
+
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💣</text></svg>">
     <style>
         :root {
@@ -52,7 +53,16 @@
         h1 {
             font-size: 2rem;
             color: var(--primary-text);
+            /* 【修改 1】调整了 h1 的下边距，为副标题留出空间 */
+            margin-bottom: 0.5rem;
+        }
+
+        /* 【修改 2】为副标题添加新样式 */
+        .subtitle {
+            margin-top: 0;
             margin-bottom: 1.5rem;
+            font-size: 1rem;
+            color: var(--secondary-text);
         }
 
         .minesweeper-game {
@@ -257,7 +267,10 @@
 <body>
 
     <div class="container">
-        <h1>经典扫雷</h1>
+        <h1>AI扫雷 - 一键完成版</h1>
+        <!-- 【修改 3】在这里添加副标题 -->
+        <p class="subtitle" style="color: #365ce4;">2026年参赛作品 - 冠军🏆</p>
+        
         <div class="minesweeper-game">
             <header class="game-header">
                 <div class="stat" id="mine-counter">
